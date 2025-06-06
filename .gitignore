@@ -1,0 +1,40 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Unit test / coverage reports
+test/
+tests/
+.pytest_cache/
+
+# pyenv
+.python-version
+
+# pyflow
+__pypackages__/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# VSCode
+.vscode
+
+#download 
+nas-download/
+
+#wav
+wav/
+
+#mp4 to txt
+text/
+mp4-to-txt/
+
+#txt to summary
+txt-to-summary/
