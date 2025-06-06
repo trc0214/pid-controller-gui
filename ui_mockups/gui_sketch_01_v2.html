@@ -128,6 +128,13 @@
             font-weight: bold;
             font-size: 12px;
         }
+        
+        .target-status {
+            margin-left: 20px;
+            color: #007bff;
+            font-weight: bold;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -185,11 +192,11 @@
                 <div class="section-title">目標設定</div>
                 <div class="input-group" id="target-position-group" style="margin-bottom: 10px;">
                     <label>目標位置 (mm)</label>
-                    <input type="number" id="target-position" value="100">
+                    <input type="number" id="target-position" value="50">
                 </div>
                 <div class="input-group" id="target-velocity-group" style="margin-bottom: 10px; display: none;">
                     <label>目標速度 (mm/s)</label>
-                    <input type="number" id="target-velocity" value="50">
+                    <input type="number" id="target-velocity" value="20">
                 </div>
                 <button onclick="sendTarget()">發送目標</button>
             </div>
@@ -204,11 +211,17 @@
             </div>
             <div class="status-bar">
                 <span class="mode-indicator">當前模式: 位置控制</span>
+                <span class="target-status" id="target-status">目標: 未設定</span>
             </div>
         </div>
     </div>
     
     <script>
+        // 全域變數
+        let currentMode = 'position';
+        let currentTarget = null;
+        let time = 0;
+        
         // 初始化圖表
         const positionCtx = document.getElementById('positionChart').getContext('2d');
         const speedCtx = document.getElementById('speedChart').getContext('2d');
@@ -218,11 +231,24 @@
             data: {
                 labels: [],
                 datasets: [{
-                    label: '位置 (mm)',
+                    label: '實際位置 (mm)',
                     data: [],
-                    borderColor: '#007bff',
+                    borderColor: '#2E5BBA', // 工業藍 - 深藍色，專業穩重
+                    backgroundColor: 'rgba(46, 91, 186, 0.1)',
+                    tension: 0.3,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointStyle: 'circle'
+                }, {
+                    label: '目標位置 (mm)',
+                    data: [],
+                    borderColor: '#D73027', // 工業紅 - 深紅色，表示設定值/目標
                     backgroundColor: 'transparent',
-                    tension: 0.4
+                    borderDash: [8, 4],
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointStyle: 'line'
                 }]
             },
             options: {
@@ -232,21 +258,45 @@
                     title: {
                         display: true,
                         text: '即時位置監控',
-                        color: '#333333',
-                        font: { size: 16, family: 'Times New Roman' }
+                        color: '#2c3e50',
+                        font: { size: 16, family: 'Arial', weight: '600' }
                     },
                     legend: {
-                        labels: { color: '#333333' }
+                        labels: { 
+                            color: '#2c3e50',
+                            usePointStyle: true,
+                            font: { size: 12, weight: '500' }
+                        }
                     }
                 },
                 scales: {
                     x: {
-                        ticks: { color: '#333333' },
-                        grid: { color: '#e0e0e0' }
+                        ticks: { 
+                            color: '#34495e',
+                            font: { size: 11 }
+                        },
+                        grid: { 
+                            color: '#bdc3c7',
+                            lineWidth: 0.8
+                        },
+                        border: { 
+                            color: '#7f8c8d',
+                            width: 1.5
+                        }
                     },
                     y: {
-                        ticks: { color: '#333333' },
-                        grid: { color: '#e0e0e0' }
+                        ticks: { 
+                            color: '#34495e',
+                            font: { size: 11 }
+                        },
+                        grid: { 
+                            color: '#bdc3c7',
+                            lineWidth: 0.8
+                        },
+                        border: { 
+                            color: '#7f8c8d',
+                            width: 1.5
+                        }
                     }
                 }
             }
@@ -257,11 +307,24 @@
             data: {
                 labels: [],
                 datasets: [{
-                    label: '速度 (mm/s)',
+                    label: '實際速度 (mm/s)',
                     data: [],
-                    borderColor: '#ff6b40',
+                    borderColor: '#1A9641', // 工業綠 - 深綠色，表示運行狀態
+                    backgroundColor: 'rgba(26, 150, 65, 0.1)',
+                    tension: 0.3,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointStyle: 'circle'
+                }, {
+                    label: '目標速度 (mm/s)',
+                    data: [],
+                    borderColor: '#F57C00', // 工業橙 - 琥珀色，表示設定值
                     backgroundColor: 'transparent',
-                    tension: 0.4
+                    borderDash: [8, 4],
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointStyle: 'line'
                 }]
             },
             options: {
@@ -271,43 +334,86 @@
                     title: {
                         display: true,
                         text: '即時速度監控',
-                        color: '#333333',
-                        font: { size: 16, family: 'Times New Roman' }
+                        color: '#2c3e50',
+                        font: { size: 16, family: 'Arial', weight: '600' }
                     },
                     legend: {
-                        labels: { color: '#333333' }
+                        labels: { 
+                            color: '#2c3e50',
+                            usePointStyle: true,
+                            font: { size: 12, weight: '500' }
+                        }
                     }
                 },
                 scales: {
                     x: {
-                        ticks: { color: '#333333' },
-                        grid: { color: '#e0e0e0' }
+                        ticks: { 
+                            color: '#34495e',
+                            font: { size: 11 }
+                        },
+                        grid: { 
+                            color: '#bdc3c7',
+                            lineWidth: 0.8
+                        },
+                        border: { 
+                            color: '#7f8c8d',
+                            width: 1.5
+                        }
                     },
                     y: {
-                        ticks: { color: '#333333' },
-                        grid: { color: '#e0e0e0' }
+                        ticks: { 
+                            color: '#34495e',
+                            font: { size: 11 }
+                        },
+                        grid: { 
+                            color: '#bdc3c7',
+                            lineWidth: 0.8
+                        },
+                        border: { 
+                            color: '#7f8c8d',
+                            width: 1.5
+                        }
                     }
                 }
             }
         });
         
         // 模擬數據更新
-        let time = 0;
         setInterval(() => {
             time++;
             const position = 50 + 30 * Math.sin(time * 0.1) + Math.random() * 5;
             const velocity = 20 + 15 * Math.cos(time * 0.1) + Math.random() * 3;
             
+            // 更新位置圖表
             positionChart.data.labels.push(time);
             positionChart.data.datasets[0].data.push(position);
+            
+            // 如果有設定位置目標，更新目標線
+            if (currentMode === 'position' && currentTarget !== null) {
+                positionChart.data.datasets[1].data.push(currentTarget);
+            } else {
+                positionChart.data.datasets[1].data.push(null);
+            }
+            
+            // 更新速度圖表
             speedChart.data.labels.push(time);
             speedChart.data.datasets[0].data.push(velocity);
             
+            // 如果有設定速度目標，更新目標線
+            if (currentMode === 'velocity' && currentTarget !== null) {
+                speedChart.data.datasets[1].data.push(currentTarget);
+            } else {
+                speedChart.data.datasets[1].data.push(null);
+            }
+            
+            // 限制顯示的數據點數量
             if (positionChart.data.labels.length > 50) {
                 positionChart.data.labels.shift();
                 positionChart.data.datasets[0].data.shift();
+                positionChart.data.datasets[1].data.shift();
                 speedChart.data.labels.shift();
                 speedChart.data.datasets[0].data.shift();
+                speedChart.data.datasets[1].data.shift();
             }
             
             positionChart.update('none');
@@ -321,7 +427,11 @@
             const positionTarget = document.getElementById('target-position-group');
             const velocityTarget = document.getElementById('target-velocity-group');
             const modeIndicator = document.querySelector('.mode-indicator');
+            const targetStatus = document.getElementById('target-status');
 
+            currentMode = this.value;
+            currentTarget = null; // 清除目標值
+            
             if (this.value === 'position') {
                 positionPid.style.display = 'block';
                 velocityPid.style.display = 'none';
@@ -335,6 +445,8 @@
                 velocityTarget.style.display = 'block';
                 modeIndicator.textContent = '當前模式: 速度控制';
             }
+            
+            targetStatus.textContent = '目標: 未設定';
         });
 
         function updatePID(type) {
@@ -343,9 +455,19 @@
         
         function sendTarget() {
             const mode = document.getElementById('mode-select').value;
-            const position = document.getElementById('target-position').value;
-            const velocity = document.getElementById('target-velocity').value;
-            console.log(`發送目標 - 模式: ${mode}, 位置: ${position}, 速度: ${velocity}`);
+            const positionValue = parseFloat(document.getElementById('target-position').value);
+            const velocityValue = parseFloat(document.getElementById('target-velocity').value);
+            const targetStatus = document.getElementById('target-status');
+            
+            if (mode === 'position') {
+                currentTarget = positionValue;
+                targetStatus.textContent = `目標: ${positionValue} mm`;
+                console.log(`發送位置目標: ${positionValue} mm`);
+            } else {
+                currentTarget = velocityValue;
+                targetStatus.textContent = `目標: ${velocityValue} mm/s`;
+                console.log(`發送速度目標: ${velocityValue} mm/s`);
+            }
         }
     </script>
 </body>
