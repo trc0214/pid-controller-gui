@@ -20,14 +20,15 @@ fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 4))
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
+
 def update_plot(frame):
     time_data.append(frame)
     speed_data.append(np.random.uniform(0, 100))  # 模擬速度數據
     position_data.append(np.random.uniform(0, 500))  # 模擬位置數據
     ax1.clear()
     ax2.clear()
-    ax1.plot(time_data[-50:], speed_data[-50:], 'b-', label="Speed")
-    ax2.plot(time_data[-50:], position_data[-50:], 'r-', label="Position")
+    ax1.plot(time_data[-50:], speed_data[-50:], "b-", label="Speed")
+    ax2.plot(time_data[-50:], position_data[-50:], "r-", label="Position")
     ax1.set_title("Speed")
     ax2.set_title("Position")
     ax1.set_xlabel("Time")
@@ -40,12 +41,15 @@ def update_plot(frame):
     ax2.grid(True)
     canvas.draw()
 
+
 # 即時更新圖表
 ani = FuncAnimation(fig, update_plot, interval=100)
 
 # 模式選擇
 tk.Label(root, text="Mode:").pack()
-mode_combo = ttk.Combobox(root, values=["Speed Mode", "Position Mode"], state="readonly")
+mode_combo = ttk.Combobox(
+    root, values=["Speed Mode", "Position Mode"], state="readonly"
+)
 mode_combo.pack()
 mode_combo.set("Speed Mode")
 
@@ -65,8 +69,13 @@ tk.Label(pid_frame1, text="Kd").pack(side=tk.LEFT)
 kd1_entry = tk.Entry(pid_frame1, width=10)
 kd1_entry.insert(0, "0.05")
 kd1_entry.pack(side=tk.LEFT)
-tk.Button(pid_frame1, text="Confirm PID 1", 
-          command=lambda: print(f"PID 1: Kp={kp1_entry.get()}, Ki={ki1_entry.get()}, Kd={kd1_entry.get()}")).pack(side=tk.LEFT, padx=5)
+tk.Button(
+    pid_frame1,
+    text="Confirm PID 1",
+    command=lambda: print(
+        f"PID 1: Kp={kp1_entry.get()}, Ki={ki1_entry.get()}, Kd={kd1_entry.get()}"
+    ),
+).pack(side=tk.LEFT, padx=5)
 
 # PID輸入 - Group 2
 pid_frame2 = tk.Frame(root)
@@ -84,8 +93,13 @@ tk.Label(pid_frame2, text="Kd").pack(side=tk.LEFT)
 kd2_entry = tk.Entry(pid_frame2, width=10)
 kd2_entry.insert(0, "0.05")
 kd2_entry.pack(side=tk.LEFT)
-tk.Button(pid_frame2, text="Confirm PID 2", 
-          command=lambda: print(f"PID 2: Kp={kp2_entry.get()}, Ki={ki2_entry.get()}, Kd={kd2_entry.get()}")).pack(side=tk.LEFT, padx=5)
+tk.Button(
+    pid_frame2,
+    text="Confirm PID 2",
+    command=lambda: print(
+        f"PID 2: Kp={kp2_entry.get()}, Ki={ki2_entry.get()}, Kd={kd2_entry.get()}"
+    ),
+).pack(side=tk.LEFT, padx=5)
 
 # 目標輸入
 target_frame = tk.Frame(root)
@@ -96,7 +110,12 @@ speed_entry.pack(side=tk.LEFT)
 tk.Label(target_frame, text="Target Position (mm):").pack(side=tk.LEFT)
 position_entry = tk.Entry(target_frame, width=10)
 position_entry.pack(side=tk.LEFT)
-tk.Button(target_frame, text="Send Target", 
-          command=lambda: print(f"Mode: {mode_combo.get()}, Speed: {speed_entry.get()}, Position: {position_entry.get()}")).pack(side=tk.LEFT, padx=5)
+tk.Button(
+    target_frame,
+    text="Send Target",
+    command=lambda: print(
+        f"Mode: {mode_combo.get()}, Speed: {speed_entry.get()}, Position: {position_entry.get()}"
+    ),
+).pack(side=tk.LEFT, padx=5)
 
 root.mainloop()
