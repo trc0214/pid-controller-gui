@@ -1,80 +1,102 @@
-import dearpygui.dearpygui as dpg
-import time
-import random
+import tkinter as tk
+from tkinter import ttk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.animation import FuncAnimation
+import numpy as np
 
-dpg.create_context()
+# 主窗口
+root = tk.Tk()
+root.title("Linear Rail Control")
+root.geometry("800x600")
 
-def update_plot():
-    # 模擬速度和位置數據
-    speed_data.append(random.uniform(0, 100))
-    position_data.append(random.uniform(0, 500))
-    dpg.set_value("speed_series", [list(range(len(speed_data))), speed_data])
-    dpg.set_value("position_series", [list(range(len(position_data))), position_data])
-
-def confirm_pid(sender, app_data, user_data):
-    group = user_data
-    kp = dpg.get_value(f"kp_{group}")
-    ki = dpg.get_value(f"ki_{group}")
-    kd = dpg.get_value(f"kd_{group}")
-    print(f"PID {group}: Kp={kp}, Ki={ki}, Kd={kd}")
-
-def send_target():
-    speed = dpg.get_value("target_speed")
-    position = dpg.get_value("target_position")
-    mode = dpg.get_value("mode_combo")
-    print(f"Mode: {mode}, Target Speed: {speed}, Target Position: {position}")
-
-# 數據存儲
+# 模擬數據
+time_data = []
 speed_data = []
 position_data = []
 
-with dpg.window(label="Linear Rail Control", width=800, height=600):
-    # 模式選擇
-    dpg.add_combo(items=["Speed Mode", "Position Mode"], label="Mode", tag="mode_combo")
-    
-    # PID輸入
-    dpg.add_text("PID Group 1")
-    dpg.add_input_float(label="Kp", tag="kp_1", default_value=1.0)
-    dpg.add_input_float(label="Ki", tag="ki_1", default_value=0.1)
-    dpg.add_input_float(label="Kd", tag="kd_1", default_value=0.05)
-    dpg.add_button(label="Confirm PID 1", callback=confirm_pid, user_data="Group 1")
-    
-    dpg.add_text("PID Group 2")
-    dpg.add_input_float(label="Kp", tag="kp_2", default_value=1.0)
-    dpg.add_input_float(label="Ki", tag="ki_2", default_value=0.1)
-    dpg.add_input_float(label="Kd", tag="kd_2", default_value=0.05)
-    dpg.add_button(label="Confirm PID 2", callback=confirm_pid, user_data="Group 2")
-    
-    # 目標輸入
-    dpg.add_input_float(label="Target Speed", tag="target_speed")
-    dpg.add_input_float(label="Target Position", tag="target_position")
-    dpg.add_button(label="Send Target", callback=send_target)
-    
-    # 繪圖
-    with dpg.plot(label="Speed", height=200, width=400):
-        dpg.add_plot_axis(dpg.Axis.X, label="Time")
-        dpg.add_plot_axis(dpg.Axis.Y, label="Speed")
-        dpg.add_line_series([], [], label="Speed", tag="speed_series")
-    
-    with dpg.plot(label="Position", height=200, width=400):
-        dpg.add_plot_axis(dpg.Axis.X, label="Time")
-        dpg.add_plot_axis(dpg.Axis.Y, label="Position")
-        dpg.add_line_series([], [], label="Position", tag="position_series")
+# 繪圖設置
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 4))
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-# 更新數據的定時器
-def update():
-    while dpg.is_dearpygui_running():
-        update_plot()
-        dpg.render_dearpygui_frame()
-        time.sleep(0.1)
+def update_plot(frame):
+    time_data.append(frame)
+    speed_data.append(np.random.uniform(0, 100))  # 模擬速度數據
+    position_data.append(np.random.uniform(0, 500))  # 模擬位置數據
+    ax1.clear()
+    ax2.clear()
+    ax1.plot(time_data[-50:], speed_data[-50:], 'b-', label="Speed")
+    ax2.plot(time_data[-50:], position_data[-50:], 'r-', label="Position")
+    ax1.set_title("Speed")
+    ax2.set_title("Position")
+    ax1.set_xlabel("Time")
+    ax2.set_xlabel("Time")
+    ax1.set_ylabel("Speed (m/s)")
+    ax2.set_ylabel("Position (mm)")
+    ax1.legend()
+    ax2.legend()
+    ax1.grid(True)
+    ax2.grid(True)
+    canvas.draw()
 
-dpg.create_viewport(title="Linear Rail GUI", width=800, height=600)
-dpg.setup_dearpygui()
-dpg.show_viewport()
+# 即時更新圖表
+ani = FuncAnimation(fig, update_plot, interval=100)
 
-# 啟動更新線程
-from threading import Thread
-Thread(target=update, daemon=True).start()
+# 模式選擇
+tk.Label(root, text="Mode:").pack()
+mode_combo = ttk.Combobox(root, values=["Speed Mode", "Position Mode"], state="readonly")
+mode_combo.pack()
+mode_combo.set("Speed Mode")
 
-dpg.start_dearpygui()
-dpg.destroy_context()
+# PID輸入 - Group 1
+pid_frame1 = tk.Frame(root)
+pid_frame1.pack(pady=5)
+tk.Label(pid_frame1, text="PID Group 1").pack()
+tk.Label(pid_frame1, text="Kp").pack(side=tk.LEFT)
+kp1_entry = tk.Entry(pid_frame1, width=10)
+kp1_entry.insert(0, "1.0")
+kp1_entry.pack(side=tk.LEFT)
+tk.Label(pid_frame1, text="Ki").pack(side=tk.LEFT)
+ki1_entry = tk.Entry(pid_frame1, width=10)
+ki1_entry.insert(0, "0.1")
+ki1_entry.pack(side=tk.LEFT)
+tk.Label(pid_frame1, text="Kd").pack(side=tk.LEFT)
+kd1_entry = tk.Entry(pid_frame1, width=10)
+kd1_entry.insert(0, "0.05")
+kd1_entry.pack(side=tk.LEFT)
+tk.Button(pid_frame1, text="Confirm PID 1", 
+          command=lambda: print(f"PID 1: Kp={kp1_entry.get()}, Ki={ki1_entry.get()}, Kd={kd1_entry.get()}")).pack(side=tk.LEFT, padx=5)
+
+# PID輸入 - Group 2
+pid_frame2 = tk.Frame(root)
+pid_frame2.pack(pady=5)
+tk.Label(pid_frame2, text="PID Group 2").pack()
+tk.Label(pid_frame2, text="Kp").pack(side=tk.LEFT)
+kp2_entry = tk.Entry(pid_frame2, width=10)
+kp2_entry.insert(0, "1.0")
+kp2_entry.pack(side=tk.LEFT)
+tk.Label(pid_frame2, text="Ki").pack(side=tk.LEFT)
+ki2_entry = tk.Entry(pid_frame2, width=10)
+ki2_entry.insert(0, "0.1")
+ki2_entry.pack(side=tk.LEFT)
+tk.Label(pid_frame2, text="Kd").pack(side=tk.LEFT)
+kd2_entry = tk.Entry(pid_frame2, width=10)
+kd2_entry.insert(0, "0.05")
+kd2_entry.pack(side=tk.LEFT)
+tk.Button(pid_frame2, text="Confirm PID 2", 
+          command=lambda: print(f"PID 2: Kp={kp2_entry.get()}, Ki={ki2_entry.get()}, Kd={kd2_entry.get()}")).pack(side=tk.LEFT, padx=5)
+
+# 目標輸入
+target_frame = tk.Frame(root)
+target_frame.pack(pady=5)
+tk.Label(target_frame, text="Target Speed (m/s):").pack(side=tk.LEFT)
+speed_entry = tk.Entry(target_frame, width=10)
+speed_entry.pack(side=tk.LEFT)
+tk.Label(target_frame, text="Target Position (mm):").pack(side=tk.LEFT)
+position_entry = tk.Entry(target_frame, width=10)
+position_entry.pack(side=tk.LEFT)
+tk.Button(target_frame, text="Send Target", 
+          command=lambda: print(f"Mode: {mode_combo.get()}, Speed: {speed_entry.get()}, Position: {position_entry.get()}")).pack(side=tk.LEFT, padx=5)
+
+root.mainloop()
