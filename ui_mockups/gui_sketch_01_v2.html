@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PID控制系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: #ffffff;
+            color: #333333;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: 100vh;
+            gap: 1px;
+        }
+        
+        .control-panel {
+            background: #f5f5f5;
+            border-right: 1px solid #d1d1d1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .chart-area {
+            background: #ffffff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333333;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .section {
+            border: 1px solid #d1d1d1;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            color: #333333;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .pid-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            color: #333333;
+            font-size: 12px;
+        }
+        
+        input, select {
+            background: #ffffff;
+            border: 1px solid #d1d1d1;
+            padding: 8px 12px;
+            color: #333333;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        button {
+            background: #007bff;
+            border: none;
+            padding: 8px 16px;
+            color: #ffffff;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .chart-container {
+            flex: 1;
+            border: 1px solid #d1d1d1;
+            padding: 15px;
+        }
+        
+        .status-bar {
+            height: 40px;
+            background: #f5f5f5;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #d1d1d1;
+        }
+        
+        .mode-indicator {
+            color: #333333;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="control-panel">
+            <div class="header">PID 控制系統</div>
+            
+            <div class="section">
+                <div class="section-title">控制模式</div>
+                <select id="mode-select">
+                    <option value="position">位置模式</option>
+                    <option value="velocity">速度模式</option>
+                </select>
+            </div>
+            
+            <div class="section" id="position-pid">
+                <div class="section-title">位置 PID 參數</div>
+                <div class="pid-group">
+                    <div class="input-group">
+                        <label>Kp</label>
+                        <input type="number" step="0.01" value="1.0">
+                    </div>
+                    <div class="input-group">
+                        <label>Ki</label>
+                        <input type="number" step="0.01" value="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Kd</label>
+                        <input type="number" step="0.01" value="0.01">
+                    </div>
+                </div>
+                <button onclick="updatePID('position')">確認位置參數</button>
+            </div>
+            
+            <div class="section" id="velocity-pid" style="display: none;">
+                <div class="section-title">速度 PID 參數</div>
+                <div class="pid-group">
+                    <div class="input-group">
+                        <label>Kp</label>
+                        <input type="number" step="0.01" value="0.8">
+                    </div>
+                    <div class="input-group">
+                        <label>Ki</label>
+                        <input type="number" step="0.01" value="0.05">
+                    </div>
+                    <div class="input-group">
+                        <label>Kd</label>
+                        <input type="number" step="0.01" value="0.005">
+                    </div>
+                </div>
+                <button onclick="updatePID('velocity')">確認速度參數</button>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">目標設定</div>
+                <div class="input-group" id="target-position-group" style="margin-bottom: 10px;">
+                    <label>目標位置 (mm)</label>
+                    <input type="number" id="target-position" value="100">
+                </div>
+                <div class="input-group" id="target-velocity-group" style="margin-bottom: 10px; display: none;">
+                    <label>目標速度 (mm/s)</label>
+                    <input type="number" id="target-velocity" value="50">
+                </div>
+                <button onclick="sendTarget()">發送目標</button>
+            </div>
+        </div>
+        
+        <div class="chart-area">
+            <div class="chart-container">
+                <canvas id="positionChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="speedChart"></canvas>
+            </div>
+            <div class="status-bar">
+                <span class="mode-indicator">當前模式: 位置控制</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 初始化圖表
+        const positionCtx = document.getElementById('positionChart').getContext('2d');
+        const speedCtx = document.getElementById('speedChart').getContext('2d');
+        
+        const positionChart = new Chart(positionCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '位置 (mm)',
+                    data: [],
+                    borderColor: '#007bff',
+                    backgroundColor: 'transparent',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '即時位置監控',
+                        color: '#333333',
+                        font: { size: 16, family: 'Times New Roman' }
+                    },
+                    legend: {
+                        labels: { color: '#333333' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#333333' },
+                        grid: { color: '#e0e0e0' }
+                    },
+                    y: {
+                        ticks: { color: '#333333' },
+                        grid: { color: '#e0e0e0' }
+                    }
+                }
+            }
+        });
+        
+        const speedChart = new Chart(speedCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '速度 (mm/s)',
+                    data: [],
+                    borderColor: '#ff6b40',
+                    backgroundColor: 'transparent',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '即時速度監控',
+                        color: '#333333',
+                        font: { size: 16, family: 'Times New Roman' }
+                    },
+                    legend: {
+                        labels: { color: '#333333' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#333333' },
+                        grid: { color: '#e0e0e0' }
+                    },
+                    y: {
+                        ticks: { color: '#333333' },
+                        grid: { color: '#e0e0e0' }
+                    }
+                }
+            }
+        });
+        
+        // 模擬數據更新
+        let time = 0;
+        setInterval(() => {
+            time++;
+            const position = 50 + 30 * Math.sin(time * 0.1) + Math.random() * 5;
+            const velocity = 20 + 15 * Math.cos(time * 0.1) + Math.random() * 3;
+            
+            positionChart.data.labels.push(time);
+            positionChart.data.datasets[0].data.push(position);
+            speedChart.data.labels.push(time);
+            speedChart.data.datasets[0].data.push(velocity);
+            
+            if (positionChart.data.labels.length > 50) {
+                positionChart.data.labels.shift();
+                positionChart.data.datasets[0].data.shift();
+                speedChart.data.labels.shift();
+                speedChart.data.datasets[0].data.shift();
+            }
+            
+            positionChart.update('none');
+            speedChart.update('none');
+        }, 100);
+        
+        // 切換控制模式
+        document.getElementById('mode-select').addEventListener('change', function() {
+            const positionPid = document.getElementById('position-pid');
+            const velocityPid = document.getElementById('velocity-pid');
+            const positionTarget = document.getElementById('target-position-group');
+            const velocityTarget = document.getElementById('target-velocity-group');
+            const modeIndicator = document.querySelector('.mode-indicator');
+
+            if (this.value === 'position') {
+                positionPid.style.display = 'block';
+                velocityPid.style.display = 'none';
+                positionTarget.style.display = 'block';
+                velocityTarget.style.display = 'none';
+                modeIndicator.textContent = '當前模式: 位置控制';
+            } else {
+                positionPid.style.display = 'none';
+                velocityPid.style.display = 'block';
+                positionTarget.style.display = 'none';
+                velocityTarget.style.display = 'block';
+                modeIndicator.textContent = '當前模式: 速度控制';
+            }
+        });
+
+        function updatePID(type) {
+            console.log(`更新 ${type} PID 參數`);
+        }
+        
+        function sendTarget() {
+            const mode = document.getElementById('mode-select').value;
+            const position = document.getElementById('target-position').value;
+            const velocity = document.getElementById('target-velocity').value;
+            console.log(`發送目標 - 模式: ${mode}, 位置: ${position}, 速度: ${velocity}`);
+        }
+    </script>
+</body>
+</html>
