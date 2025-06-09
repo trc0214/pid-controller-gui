@@ -1,1 +1,4 @@
 matplotlib
+PyQt5 
+pyqtgraph 
+numpy
